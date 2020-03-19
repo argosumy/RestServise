@@ -6,7 +6,10 @@ public class Exchange {
     private String date;
     private String bank;
     private String baseCurrencyLit;
-    private List<ExchangeRate> exchangeRate = null;
+    private List<ExchangeRate> exchangeRate;
+
+    public Exchange() {
+    }
 
     public String getDate() {
         return date;
@@ -41,12 +44,15 @@ public class Exchange {
     }
 
 
-    class ExchangeRate {
+    public class ExchangeRate {
 
         private String baseCurrency;
-        private Float saleRateNB;
+        private String saleRateNB;
         private Float purchaseRateNB;
         private String currency;
+
+        public ExchangeRate() {
+        }
 
         public String getBaseCurrency() {
             return baseCurrency;
@@ -56,11 +62,11 @@ public class Exchange {
             this.baseCurrency = baseCurrency;
         }
 
-        public Float getSaleRateNB() {
+        public String getSaleRateNB() {
             return saleRateNB;
         }
 
-        public void setSaleRateNB(Float saleRateNB) {
+        public void setSaleRateNB(String saleRateNB) {
             this.saleRateNB = saleRateNB;
         }
 
@@ -79,6 +85,25 @@ public class Exchange {
         public void setCurrency(String currency) {
             this.currency = currency;
         }
+
+        @Override
+        public String toString() {
+            return "ExchangeRate{" +
+                    "baseCurrency='" + baseCurrency + '\'' +
+                    ", saleRateNB=" + saleRateNB +
+                    ", purchaseRateNB=" + purchaseRateNB +
+                    ", currency='" + currency + '\'' +
+                    '}';
+        }
     }
 
+    @Override
+    public String toString() {
+        return "Exchange{" +
+                "date='" + date + '\'' +
+                ", bank='" + bank + '\'' +
+                ", baseCurrencyLit='" + baseCurrencyLit + '\'' +
+                ", exchangeRate=" + exchangeRate +
+                '}';
+    }
 }
