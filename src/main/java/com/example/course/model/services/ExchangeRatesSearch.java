@@ -29,7 +29,8 @@ public class ExchangeRatesSearch implements ExchangeRatesSearchIn  {
      /*   String resultXML = restTemplate.getForObject("https://api.privatbank.ua/p24api/exchange_rates?xml&date="
                 + date,String.class);*/
         JSONObject root = new JSONObject(resultJson);
-        new ParsJson(resultJson);
+        ParsJson parsJson = new ParsJson(resultJson);
+        parsJson.parsJson();
        // System.out.println(resultJson);
        // System.out.println(resultXML);
         return resultJson;

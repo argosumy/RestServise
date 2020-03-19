@@ -47,8 +47,8 @@ public class Exchange {
     public class ExchangeRate {
 
         private String baseCurrency;
-        private String saleRateNB;
-        private Float purchaseRateNB;
+        private String saleRate;
+        private String purchaseRate;
         private String currency;
 
         public ExchangeRate() {
@@ -62,20 +62,21 @@ public class Exchange {
             this.baseCurrency = baseCurrency;
         }
 
-        public String getSaleRateNB() {
-            return saleRateNB;
+        public String getSaleRate() {
+            return saleRate;
         }
 
-        public void setSaleRateNB(String saleRateNB) {
-            this.saleRateNB = saleRateNB;
+        public void setSaleRate(String saleRate) {
+            this.saleRate = saleRate;
         }
 
-        public Float getPurchaseRateNB() {
-            return purchaseRateNB;
+        public String getPurchaseRate() {
+            return purchaseRate;
         }
 
-        public void setPurchaseRateNB(Float purchaseRateNB) {
-            this.purchaseRateNB = purchaseRateNB;
+        public void setPurchaseRate(String purchaseRate) {
+
+            this.purchaseRate = purchaseRate;
         }
 
         public String getCurrency() {
@@ -90,8 +91,8 @@ public class Exchange {
         public String toString() {
             return "ExchangeRate{" +
                     "baseCurrency='" + baseCurrency + '\'' +
-                    ", saleRateNB=" + saleRateNB +
-                    ", purchaseRateNB=" + purchaseRateNB +
+                    ", saleRate=" + saleRate +
+                    ", purchaseRate=" + purchaseRate +
                     ", currency='" + currency + '\'' +
                     '}';
         }
