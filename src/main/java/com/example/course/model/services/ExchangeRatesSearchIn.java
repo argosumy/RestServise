@@ -2,7 +2,10 @@ package com.example.course.model.services;
 
 
 public interface ExchangeRatesSearchIn {
-    static String action (String param){
+    static String actionDay (String param, String url){
+        return null;
+    }
+    static String actionMonth (String param){
         return null;
     }
 }

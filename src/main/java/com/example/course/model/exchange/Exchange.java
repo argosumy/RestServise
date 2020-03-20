@@ -75,7 +75,6 @@ public class Exchange {
         }
 
         public void setPurchaseRate(String purchaseRate) {
-
             this.purchaseRate = purchaseRate;
         }
 

@@ -10,11 +10,9 @@ import java.util.List;
 
 public class ParsJson {
     String json;
-
     public ParsJson(String json) throws JSONException {
         this.json = json;
     }
-
     public Exchange parsJson()throws JSONException {
         JSONObject obj = new JSONObject(json);
         Exchange exchange = new Exchange();
@@ -36,11 +34,10 @@ public class ParsJson {
             else {
                 continue;
             }
-            System.out.println(exchangeRate);
             listExchange.add(exchangeRate);
         }
-        System.out.println("КУРС - " + listExchange.toString());
         exchange.setExchangeRate(listExchange);
+        System.out.println(exchange);
         return exchange;
     }
 }
