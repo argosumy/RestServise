@@ -34,12 +34,11 @@ public class WordDoc {
                 abzac.setText("ПРОДАЖА - " + exchangeRate.getSaleRate() + "   ");
                 abzac.setText("ПОКУПКА - " + exchangeRate.getPurchaseRate());
                 abzac.addBreak();
-
             }
             doc.write(fos);
         } catch (IOException ex) {
 
         }
     }
-     
+
 }
