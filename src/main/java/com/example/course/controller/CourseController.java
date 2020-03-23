@@ -17,9 +17,9 @@ public class CourseController {
             return ExchangeRatesSearch.searcExcange(param);
     }
 
-    @GetMapping(value = "/date={date}&currency={curr}")
-    public String exchangeRateDay(@PathVariable String date, @PathVariable String curr) throws JSONException, IOException {
-        return ExchangeRatesSearch.searcExcange(date, curr);
+    @GetMapping(value = "/month={param}")
+    public String exchangeRateMonth(@PathVariable List<String> param) throws JSONException, IOException {
+        return ExchangeRatesSearch.searcExcange(param);
     }
 
 
