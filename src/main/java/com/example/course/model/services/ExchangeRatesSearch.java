@@ -5,6 +5,8 @@ import com.example.course.model.converters.ParsJson;
 import com.example.course.model.converters.WordDoc;
 import com.example.course.model.exchange.Exchange;
 import org.json.JSONException;
+import org.springframework.context.annotation.Bean;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
@@ -16,17 +18,22 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
 
 @Service
 public class ExchangeRatesSearch implements ExchangeRatesSearchIn  {
+
+
     public static String searcExcange(List<String> param) throws IOException, JSONException {
         String url ="https://api.privatbank.ua/p24api/exchange_rates?json&date=";
         String curr = null;
-        Exchange result = null;
+        List<Exchange> result = null;
         String date = param.get(0);
-
         SimpleDateFormat format = new SimpleDateFormat();
+        /*
+        Проверка даты на соответствие настоящему или прошедшему времени
+         */
         if(date.length() > 7){
             format.applyPattern("dd.MM.yyyy");
         }
@@ -44,39 +51,41 @@ public class ExchangeRatesSearch implements ExchangeRatesSearchIn  {
             return "EROR1";
         }
 
+        List<Exchange> resultExchange = actionDayMonth(date,url);
         /*
-        RestTemplate restTemplate = new RestTemplate();
-        String resultJson = restTemplate.getForObject(url + date, String.class);
-        */
-
-
-        String resultJson = actionDayMonthCurr(date,url).toString();
-        /*if (param.size()>1)  {
+        Проверка в запросе наличия условия по валюте
+        и вывод соответствующего результата.
+         */
+        if (param.size()>1)  {
             curr = param.get(1);
-            result  = actionDayCurr(resultJson,curr);
+            result  = actionDayCurr(resultExchange,curr);
             new WordDoc(result,date);
-            resultJson = result.toString();
+            resultExchange = result;
         }
         else {
-            ParsJson parsJson = new ParsJson(resultJson);
-            result  = parsJson.parsJson();
-            new WordDoc(result,date);
-        }*/
-        return resultJson;
+            new WordDoc(resultExchange,date);
+        }
+        return resultExchange.toString();
     }
 
-    public static List<Exchange> actionDayMonthCurr(String date, String url) throws JSONException {
-        String dateCh = date;
-        String str;
+    /**
+     * Метод выбирает курсы всех валют с ресурса URL за определенный период date
+     * @param date Временной параметр выборки формат "MM.yyyy" или "dd.MM.yyyy"
+     * @param url Ресурс курсов валют
+     * @return результат выборки в виде коллекции объектов Exchange
+     * @throws JSONException
+     */
+    public static List<Exchange> actionDayMonth(String date, String url) throws JSONException {
+        String dateCh = null;
         Exchange result;
         List<Exchange> arrayExchange = new ArrayList<>();
         Boolean flag = false;
-            if(date.length() > 7){
-                flag = true;
-            }
-            else{
-                dateCh = "01." + date;
-            }
+        if(date.length() > 7){
+            dateCh = date;
+            flag = true;
+        }
+        else dateCh = "01." + date;
+
         int i = 1;
         do {
             RestTemplate restTemplate = new RestTemplate();
@@ -104,30 +113,42 @@ public class ExchangeRatesSearch implements ExchangeRatesSearchIn  {
         while (!flag);
         return arrayExchange;
     }
-
-    public static Exchange actionDayCurr(String resultJson, String curr) throws JSONException, IOException {
+/*
+    public static List<Exchange> arrayExchange(String url, String dateCh, List<Exchange> array) throws JSONException {
+        RestTemplate restTemplate = new RestTemplate();
+        String resultJson = restTemplate.getForObject(url + dateCh, String.class);
         ParsJson parsJson = new ParsJson(resultJson);
         Exchange result  = parsJson.parsJson();
-        for (Exchange.ExchangeRate exchange:result.getExchangeRate()) {
-            if(exchange.getCurrency().equals(curr)){
-                List<Exchange.ExchangeRate> listExchange = new ArrayList<>();
-                listExchange.add(exchange);
-                Exchange resultCopy = new Exchange();
-                resultCopy.setBank(result.getBank());
-                resultCopy.setDate(result.getDate());
-                resultCopy.setBaseCurrencyLit(result.getBaseCurrencyLit());
-                resultCopy.setExchangeRate(listExchange);
-                return resultCopy;
+        array.add(result);
+        return array;
+    }*/
+    /**
+     * Метод выбирает из коллекции валют курс валюты curr
+     * @param arrayExchange коллекция курсов всех валют
+     * @param curr название валюты example: "USD"
+     * @return
+     * @throws JSONException
+     * @throws IOException
+     */
+    public static List<Exchange> actionDayCurr(List<Exchange> arrayExchange, String curr) throws JSONException, IOException {
+        List<Exchange> arrayExchangeCurr = new ArrayList<>();
+        for (Exchange result:arrayExchange) {
+            for (Exchange.ExchangeRate exchange : result.getExchangeRate()) {
+                if (exchange.getCurrency().equals(curr)) {
+                    List<Exchange.ExchangeRate> listExchange = new ArrayList<>();
+                    listExchange.add(exchange);
+                    Exchange resultCopy = new Exchange();
+                    resultCopy.setBank(result.getBank());
+                    resultCopy.setDate(result.getDate());
+                    resultCopy.setBaseCurrencyLit(result.getBaseCurrencyLit());
+                    resultCopy.setExchangeRate(listExchange);
+                    arrayExchangeCurr.add(resultCopy);
+                }
             }
         }
-
-
-     /*   String resultXML = restTemplate.getForObject("https://api.privatbank.ua/p24api/exchange_rates?xml&date="
-                + date,String.class);*/
-       // ParsJson parsJson = new ParsJson(resultJson);
-       // Exchange result  = parsJson.parsJson();
-       // new WordDoc(result,date);
-        return null;
+        return arrayExchangeCurr;
     }
+
+    //public Exchange
 
 }
