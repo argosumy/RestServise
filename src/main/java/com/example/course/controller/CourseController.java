@@ -1,6 +1,7 @@
 package com.example.course.controller;
 
 import com.example.course.model.services.ExchangeRatesSearch;
+import com.example.course.model.services.ExchangeRatesSearchIn;
 import org.json.JSONException;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -12,14 +13,20 @@ import java.util.List;
 
 @RestController
 public class CourseController {
+    private final ExchangeRatesSearchIn service;
+
+    public CourseController(ExchangeRatesSearch service) {
+        this.service = service;
+    }
+
     @GetMapping(value = "/date={param}")
     public String exchangeRateDay(@PathVariable List<String> param) throws JSONException, IOException {
-            return ExchangeRatesSearch.searcExcange(param);
+            return service.searcExcange(param);
     }
 
     @GetMapping(value = "/month={param}")
     public String exchangeRateMonth(@PathVariable List<String> param) throws JSONException, IOException {
-        return ExchangeRatesSearch.searcExcange(param);
+        return service.searcExcange(param);
     }
 
 

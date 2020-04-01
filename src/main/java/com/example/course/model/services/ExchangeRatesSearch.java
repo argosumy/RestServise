@@ -5,8 +5,6 @@ import com.example.course.model.converters.ParsJson;
 import com.example.course.model.converters.WordDoc;
 import com.example.course.model.exchange.Exchange;
 import org.json.JSONException;
-import org.springframework.context.annotation.Bean;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
@@ -18,14 +16,19 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.*;
 
 
 @Service
 public class ExchangeRatesSearch implements ExchangeRatesSearchIn  {
+private List<Exchange> listExchange = new ArrayList<>();
+private RestTemplate restTemplate = new RestTemplate();
 
+    public ExchangeRatesSearch() {
+    }
 
-    public static String searcExcange(List<String> param) throws IOException, JSONException {
+    @Override
+    public String searcExcange(List<String> param) throws JSONException, IOException {
         String url ="https://api.privatbank.ua/p24api/exchange_rates?json&date=";
         String curr = null;
         List<Exchange> result = null;
@@ -75,53 +78,55 @@ public class ExchangeRatesSearch implements ExchangeRatesSearchIn  {
      * @return результат выборки в виде коллекции объектов Exchange
      * @throws JSONException
      */
-    public static List<Exchange> actionDayMonth(String date, String url) throws JSONException {
+    public List<Exchange> actionDayMonth(String date, String url) throws JSONException {
         String dateCh = null;
         Exchange result;
-        List<Exchange> arrayExchange = new ArrayList<>();
-        Boolean flag = false;
         if(date.length() > 7){
             dateCh = date;
-            flag = true;
+            System.out.println("Name " + Thread.currentThread().getName());
+            result = exchange(url, dateCh);
+            listExchange.add(result);
         }
-        else dateCh = "01." + date;
-
-        int i = 1;
-        do {
-            RestTemplate restTemplate = new RestTemplate();
-            String resultJson = restTemplate.getForObject(url + dateCh, String.class);
-            ParsJson parsJson = new ParsJson(resultJson);
-            result  = parsJson.parsJson();
-            if((flag == false) && (result.getDate().contains(date))){
-                arrayExchange.add(result);
-                if ( i < 9){
-                    i++;
-                    dateCh = "0" + i +"." + date;
-                }
-                else {
-                    i++;
+        //выборка за месяц в нескольких потоках
+        else {
+           //List<CompletableFuture> futureList = new ArrayList<>(31);
+            ExecutorService executor = Executors.newFixedThreadPool(5);
+            CompletionService<Exchange> completionService = new ExecutorCompletionService<>(executor);
+            Future<Exchange> future;
+            for (int i = 1; i < 32; i++) {
+                System.out.println(i);
+                if (i < 10) {
+                    dateCh = "0" + i + "." + date;
+                } else {
                     dateCh = i + "." + date;
                 }
-            }
-            else {
-                if(flag == true){
-                    arrayExchange.add(result);
+                String finalDateCh = dateCh;
+                try {
+                    future = completionService.submit(() -> exchange(url,finalDateCh));
+                    listExchange.add(future.get());
+                } catch (Exception e) {
+                    e.printStackTrace();
                 }
-                flag = true;
             }
+
         }
-        while (!flag);
-        return arrayExchange;
+        return listExchange;
     }
-/*
-    public static List<Exchange> arrayExchange(String url, String dateCh, List<Exchange> array) throws JSONException {
-        RestTemplate restTemplate = new RestTemplate();
+  //  @Async("processExecutor")
+    public Exchange exchange(String url, String dateCh)  {
+        System.out.println(Thread.currentThread().getName());
         String resultJson = restTemplate.getForObject(url + dateCh, String.class);
-        ParsJson parsJson = new ParsJson(resultJson);
-        Exchange result  = parsJson.parsJson();
-        array.add(result);
-        return array;
-    }*/
+        Exchange result = null;
+        try {
+            ParsJson parsJson = new ParsJson(resultJson);
+            result = parsJson.parsJson();
+        }
+        catch (JSONException ex){
+
+        }
+        //listExchange.add(result);
+        return result;
+    }
     /**
      * Метод выбирает из коллекции валют курс валюты curr
      * @param arrayExchange коллекция курсов всех валют
@@ -148,7 +153,5 @@ public class ExchangeRatesSearch implements ExchangeRatesSearchIn  {
         }
         return arrayExchangeCurr;
     }
-
-    //public Exchange
 
 }
