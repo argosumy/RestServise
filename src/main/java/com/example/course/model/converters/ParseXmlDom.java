@@ -5,12 +5,15 @@ import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
+import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 import java.io.IOException;
+import java.io.Reader;
+import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -22,34 +25,45 @@ public class ParseXmlDom {
     }
 
     public Exchange parserXmlDom() throws IOException, SAXException, ParserConfigurationException {
-        DocumentBuilderFactory documentBuilderFactory = DocumentBuilderFactory.newInstance();
-        DocumentBuilder documentBuilder = documentBuilderFactory.newDocumentBuilder();
-        Document document = documentBuilder.parse(xmlDom);
+        DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+        DocumentBuilder documentBuilder = factory.newDocumentBuilder();
+        Document document = documentBuilder.parse(new InputSource(new StringReader(xmlDom)));
         document.getDocumentElement().normalize();
-        Exchange elBlogs = new Exchange();
-        elBlogs.setDate(document.getDocumentElement().getAttribute("date"));
-        elBlogs.setBank(document.getDocumentElement().getAttribute("bank"));
-        elBlogs.setBaseCurrencyLit(document.getDocumentElement().getAttribute("BaseCurrencyLit"));
-        List<Exchange.ExchangeRate> exchangeRateList = new ArrayList<>();
-        NodeList nList = document.getElementsByTagName("exchangerate");
-        for (int i = 0; i < nList.getLength(); i++) {
-            Node nNode = nList.item(i);
-            System.out.println(nNode.getNodeName());
-            System.out.println(nNode.getNodeType());
-            if (nNode.getNodeType() == Node.ELEMENT_NODE) {
-                Element element = (Element) nNode;
-                if (element.getAttribute("saleRate") != "") {
-                    Exchange.ExchangeRate elExch = elBlogs.new ExchangeRate();
-                    elExch.setBaseCurrency(element.getAttribute("baseCurrency"));
-                    elExch.setCurrency(element.getAttribute("currency"));
-                    elExch.setSaleRate(element.getAttribute("saleRate"));
-                    elExch.setPurchaseRate(element.getAttribute("purchaseRate"));
-                    exchangeRateList.add(elExch);
-                    System.out.println(element.getAttribute("saleRate"));
+
+        Element root = document.getDocumentElement();
+        NodeList nodeList = root.getChildNodes();
+
+        Exchange exchanges = new Exchange();
+        exchanges.setDate(root.getElementsByTagName("exchangedate").item(0).getTextContent());
+        exchanges.setBank("NBU");
+        exchanges.setBaseCurrencyLit("UAH");
+        List<Exchange.ExchangeRate> exchangeList = new ArrayList<>();
+        for (int i = 0; i < nodeList.getLength(); i++) {
+            Node node = nodeList.item(i);
+            if (node.getNodeName() == "currency") {
+                NodeList cur = node.getChildNodes();
+                Exchange.ExchangeRate rate = exchanges.new ExchangeRate();
+                for (int x = 0; x < cur.getLength(); x++) {
+                    Node node1 = cur.item(x);
+                    if (node1.getNodeName() != "#text") {
+                        if (node1.getNodeName() == "cc") {
+                            rate.setCurrency(node1.getTextContent());
+                            rate.setBaseCurrency("UAN");
+                        }
+                        if (node1.getNodeName() == "rate") {
+                            rate.setSaleRate(node1.getTextContent());
+                            rate.setPurchaseRate(node1.getTextContent());
+                        }
+                        if (node1.getNodeName() == "txt") {
+                        }
+                        if (x > 8) {
+                            exchangeList.add(rate);
+                        }
+                    }
                 }
             }
         }
-        elBlogs.setExchangeRate(exchangeRateList);
-        return elBlogs;
+        exchanges.setExchangeRate(exchangeList);
+        return exchanges;
     }
 }

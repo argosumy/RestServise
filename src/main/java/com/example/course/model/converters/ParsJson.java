@@ -22,7 +22,6 @@ public class ParsJson {
         exchange.setDate(obj.getString("date"));
         exchange.setBank(obj.getString("bank"));
         exchange.setBaseCurrencyLit(obj.getString("baseCurrencyLit"));
-        //System.out.println("Parser");
         JSONArray listEx = obj.getJSONArray("exchangeRate");
         List<Exchange.ExchangeRate> listExchange = new ArrayList<>();
         for (int i = 0; i < listEx.length(); i++) {
@@ -40,7 +39,6 @@ public class ParsJson {
             listExchange.add(exchangeRate);
         }
         exchange.setExchangeRate(listExchange);
-        System.out.println(exchange);
         return exchange;
     }
 }

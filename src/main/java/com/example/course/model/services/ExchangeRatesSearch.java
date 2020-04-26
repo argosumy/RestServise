@@ -2,13 +2,16 @@ package com.example.course.model.services;
 
 
 import com.example.course.model.converters.ParsJson;
+import com.example.course.model.converters.ParseXmlDom;
 import com.example.course.model.converters.TypeBank;
 import com.example.course.model.converters.WordDoc;
 import com.example.course.model.exchange.Exchange;
 import org.json.JSONException;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
+import org.xml.sax.SAXException;
 
+import javax.xml.parsers.ParserConfigurationException;
 import java.io.IOException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -73,8 +76,8 @@ private RestTemplate restTemplate = new RestTemplate();
             return "EROR1";
         }
         String url = creatURL(TypeBank.typeBank.PB,date);
-        List<Exchange> resultExchange = actionDayMonth(date,flag);
-
+      //  List<Exchange> resultExchange = actionDayMonth(date,flag, TypeBank.typeBank.PB);
+        List<Exchange> resultExchange = actionDayMonth(date,flag, TypeBank.typeBank.NBU);
         /*
         Проверка в запросе наличия условия по валюте
         и вывод соответствующего результата.
@@ -97,14 +100,14 @@ private RestTemplate restTemplate = new RestTemplate();
      * @return результат выборки в виде коллекции объектов Exchange
      * @throws JSONException
      */
-    public List<Exchange> actionDayMonth(String date, Boolean flag) throws JSONException {
+    public List<Exchange> actionDayMonth(String date, Boolean flag, TypeBank.typeBank bank) throws JSONException {
         String dateCh = null;
         Exchange result;
         if(flag){
             //dateCh = date;
             System.out.println("Name " + Thread.currentThread().getName());
-            String url = creatURL(TypeBank.typeBank.PB,date);
-            result = exchange(url);
+            String url = creatURL(bank,date);
+            result = exchange(url, bank);
 
             listExchange.add(result);
         }
@@ -122,9 +125,9 @@ private RestTemplate restTemplate = new RestTemplate();
                     dateCh = i + "." + date;
                 }
 //                String finalDateCh = dateCh;
-                String url = creatURL(TypeBank.typeBank.PB,dateCh);
+                String url = creatURL(bank,dateCh);
                 try {
-                    future = completionService.submit(() -> exchange(url));
+                    future = completionService.submit(() -> exchange(url,bank));
                     listFuture.add(future);
                     //listExchange.add(future.get());
                 } catch (Exception e) {
@@ -146,16 +149,29 @@ private RestTemplate restTemplate = new RestTemplate();
         return listExchange;
     }
 
-    public Exchange exchange(String url)  {
+    public Exchange exchange(String url, TypeBank.typeBank bank)  {
         System.out.println("Exchange - " + Thread.currentThread().getName());
         String resultJson = restTemplate.getForObject(url, String.class);
         Exchange result = null;
-        try {
-            ParsJson parsJson = new ParsJson(resultJson);
-            result = parsJson.parsJson();
+        if(bank.equals(TypeBank.typeBank.PB)){
+            try {
+                ParsJson parsJson = new ParsJson(resultJson);
+                result = parsJson.parsJson();
+            }
+            catch (JSONException ex){
+                }
         }
-        catch (JSONException ex){
-
+        else {
+            ParseXmlDom parseXmlDom = new ParseXmlDom(resultJson);
+            try {
+                result = parseXmlDom.parserXmlDom();
+            } catch (IOException e) {
+                e.printStackTrace();
+            } catch (SAXException e) {
+                e.printStackTrace();
+            } catch (ParserConfigurationException e) {
+                e.printStackTrace();
+            }
         }
         return result;
     }
