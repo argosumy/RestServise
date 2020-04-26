@@ -26,7 +26,6 @@ public class CourseApplication  {
         return threadPoolTaskExecutor;
     }
     public static void main(String[] args) {
-
         SpringApplication.run(CourseApplication.class, args);
     }
 }

@@ -18,7 +18,9 @@ public class CourseController {
     public CourseController(ExchangeRatesSearch service) {
         this.service = service;
     }
-
+/*Вид запроса
+*http://localhost:8888//date=22.03.2020,USD
+* */
     @GetMapping(value = "/date={param}")
     public String exchangeRateDay(@PathVariable List<String> param) throws JSONException, IOException {
             return service.searcExcange(param);
