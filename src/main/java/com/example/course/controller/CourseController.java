@@ -26,10 +26,6 @@ public class CourseController {
             return service.searcExcange(param);
     }
 
-    @GetMapping(value = "/month={param}")
-    public String exchangeRateMonth(@PathVariable List<String> param) throws JSONException, IOException {
-        return service.searcExcange(param);
-    }
 
 
 

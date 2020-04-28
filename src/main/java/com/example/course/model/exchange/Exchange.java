@@ -2,7 +2,7 @@ package com.example.course.model.exchange;
 
 import java.util.List;
 
-public class Exchange {
+public class Exchange implements Comparable<Exchange>{
     private String date;
     private String bank;
     private String baseCurrencyLit;
@@ -43,6 +43,10 @@ public class Exchange {
         this.exchangeRate = exchangeRate;
     }
 
+    @Override
+    public int compareTo(Exchange o) {
+        return this.getDate().compareTo(o.getDate());
+    }
 
     public class ExchangeRate {
 
@@ -88,7 +92,7 @@ public class Exchange {
 
         @Override
         public String toString() {
-            return "ExchangeRate{" +
+            return "\nExchangeRate{" +
                     "baseCurrency='" + baseCurrency + '\'' +
                     ", saleRate=" + saleRate +
                     ", purchaseRate=" + purchaseRate +
@@ -99,7 +103,7 @@ public class Exchange {
 
     @Override
     public String toString() {
-        return "Exchange{" +
+        return "\nExchange{" +
                 "date='" + date + '\'' +
                 ", bank='" + bank + '\'' +
                 ", baseCurrencyLit='" + baseCurrencyLit + '\'' +

@@ -6,6 +6,7 @@ import com.example.course.model.converters.ParseXmlDom;
 import com.example.course.model.converters.TypeBank;
 import com.example.course.model.converters.WordDoc;
 import com.example.course.model.exchange.Exchange;
+import org.apache.log4j.Logger;
 import org.json.JSONException;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
@@ -25,8 +26,10 @@ import java.util.concurrent.*;
 
 @Service
 public class ExchangeRatesSearch implements ExchangeRatesSearchIn  {
-private List<Exchange> listExchange = new ArrayList<>();
-private RestTemplate restTemplate = new RestTemplate();
+    private static final Logger LOGGER = Logger.getLogger(ExchangeRatesSearch.class);
+    private List<Exchange> listExchangePB = new ArrayList<>();
+    private List<Exchange> listExchangeNBU = new ArrayList<>();
+    private RestTemplate restTemplate = new RestTemplate();
 //private SimpleDateFormat format = new SimpleDateFormat();
 
     public ExchangeRatesSearch() {
@@ -48,9 +51,7 @@ private RestTemplate restTemplate = new RestTemplate();
     }
     @Override
     public String searcExcange(List<String> param) throws JSONException, IOException {
-      //  String url = "https://api.privatbank.ua/p24api/exchange_rates?json&date=";
         String curr = null;
-        List<Exchange> result = null;
         String date = param.get(0);
         SimpleDateFormat format = new SimpleDateFormat();
         Date docDate;
@@ -75,23 +76,43 @@ private RestTemplate restTemplate = new RestTemplate();
             e.printStackTrace();
             return "EROR1";
         }
-        String url = creatURL(TypeBank.typeBank.PB,date);
-      //  List<Exchange> resultExchange = actionDayMonth(date,flag, TypeBank.typeBank.PB);
-        List<Exchange> resultExchange = actionDayMonth(date,flag, TypeBank.typeBank.NBU);
+        //?????????????????
+      //  String url = creatURL(TypeBank.typeBank.PB,date);
+      //  actionDayMonth(date,flag, TypeBank.typeBank.PB);
+       // actionDayMonth(date,flag, TypeBank.typeBank.NBU);
+        CompletableFuture futurePb;
+        CompletableFuture futureNbu;
+        Boolean flagB = flag;
+        futureNbu = CompletableFuture.supplyAsync(()-> actionDayMonth(date,flagB,TypeBank.typeBank.NBU));
+        futurePb = CompletableFuture.supplyAsync(() -> actionDayMonth(date,flagB, TypeBank.typeBank.PB));
+        try{
+        listExchangePB = (List<Exchange>) futurePb.get();
+        listExchangeNBU = (List<Exchange>) futureNbu.get();
+        }
+        catch (InterruptedException | ExecutionException e){
+            LOGGER.error("Ошибка при получении результатов асинхронного запроса", e);
+        }
+
         /*
         Проверка в запросе наличия условия по валюте
         и вывод соответствующего результата.
          */
+
         if (param.size()>1)  {
             curr = param.get(1);
-            result  = actionDayCurr(resultExchange,curr);
-            new WordDoc(result,date);
-            resultExchange = result;
+            List<Exchange>resultPB  = actionDayCurr(listExchangePB,curr);
+            List<Exchange>resultNBU = actionDayCurr(listExchangeNBU,curr);
+        //    String paramPB = date + "_" + TypeBank.typeBank.PB;
+            new WordDoc(resultPB,date+"PB");
+            new WordDoc(resultNBU,date+"NBU");
+            listExchangePB = resultPB;
+            listExchangeNBU = resultNBU;
         }
         else {
-            new WordDoc(resultExchange,date);
+            new WordDoc(listExchangePB,date + "PB");
+            new WordDoc(listExchangeNBU,date + "NBU");
         }
-        return resultExchange.toString();
+        return listExchangeNBU.toString();
     }
 
     /**
@@ -100,44 +121,39 @@ private RestTemplate restTemplate = new RestTemplate();
      * @return результат выборки в виде коллекции объектов Exchange
      * @throws JSONException
      */
-    public List<Exchange> actionDayMonth(String date, Boolean flag, TypeBank.typeBank bank) throws JSONException {
+    public List<Exchange> actionDayMonth(String date, Boolean flag, TypeBank.typeBank bank){
+        List<Exchange> exchangeList = new ArrayList<>();
         String dateCh = null;
         Exchange result;
         if(flag){
-            //dateCh = date;
             System.out.println("Name " + Thread.currentThread().getName());
             String url = creatURL(bank,date);
             result = exchange(url, bank);
-
-            listExchange.add(result);
+            exchangeList.add(result);
         }
         //выборка за месяц в нескольких потоках
         else {
-           //List<CompletableFuture> futureList = new ArrayList<>(31);
             ExecutorService executor = Executors.newFixedThreadPool(5);
             CompletionService<Exchange> completionService = new ExecutorCompletionService<>(executor);
             List<Future<Exchange>> listFuture = new ArrayList<>();
             Future<Exchange> future;
-            for (int i = 1; i < 32; i++) {
-                if (i < 10) {
-                    dateCh = "0" + i + "." + date;
-                } else {
-                    dateCh = i + "." + date;
-                }
-//                String finalDateCh = dateCh;
+            String dateParse = "01." + date;
+            DateTimeFormatter format = DateTimeFormatter.ofPattern("dd.MM.yyyy");
+            LocalDate localDate = LocalDate.parse(dateParse,format);
+            for (LocalDate i = localDate; i.isBefore(localDate.plusMonths(1)); i=i.plusDays(1)) {
+                dateCh = i.format(format);
+                System.out.println(bank +" "+ dateCh);
                 String url = creatURL(bank,dateCh);
                 try {
                     future = completionService.submit(() -> exchange(url,bank));
                     listFuture.add(future);
-                    //listExchange.add(future.get());
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
             }
-            System.out.println("ADD START");
             for (int i = 0; i < listFuture.size();i++ ){
                 try {
-                    listExchange.add(completionService.take().get());
+                    exchangeList.add(completionService.take().get());
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 } catch (ExecutionException e) {
@@ -146,7 +162,7 @@ private RestTemplate restTemplate = new RestTemplate();
             }
             executor.shutdown();
         }
-        return listExchange;
+        return exchangeList;
     }
 
     public Exchange exchange(String url, TypeBank.typeBank bank)  {
@@ -196,6 +212,7 @@ private RestTemplate restTemplate = new RestTemplate();
                     resultCopy.setBaseCurrencyLit(result.getBaseCurrencyLit());
                     resultCopy.setExchangeRate(listExchange);
                     arrayExchangeCurr.add(resultCopy);
+                    break;
                 }
             }
         }
