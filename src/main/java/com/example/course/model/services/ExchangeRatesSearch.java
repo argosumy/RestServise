@@ -8,6 +8,7 @@ import com.example.course.model.converters.WordDoc;
 import com.example.course.model.exchange.Exchange;
 import org.apache.log4j.Logger;
 import org.json.JSONException;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 import org.xml.sax.SAXException;
@@ -18,9 +19,7 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.*;
 
 
@@ -30,7 +29,6 @@ public class ExchangeRatesSearch implements ExchangeRatesSearchIn  {
     private List<Exchange> listExchangePB = new ArrayList<>();
     private List<Exchange> listExchangeNBU = new ArrayList<>();
     private RestTemplate restTemplate = new RestTemplate();
-//private SimpleDateFormat format = new SimpleDateFormat();
 
     public ExchangeRatesSearch() {
     }
@@ -49,42 +47,44 @@ public class ExchangeRatesSearch implements ExchangeRatesSearchIn  {
         }
         return null;
     }
+
     @Override
-    public String searcExcange(List<String> param) throws JSONException, IOException {
-        String curr = null;
-        String date = param.get(0);
-        SimpleDateFormat format = new SimpleDateFormat();
-        Date docDate;
-        Boolean flag = true;
-        /*
-        Проверка даты на соответствие настоящему или прошедшему времени
-         */
-        if(date.length() > 7){
-            format.applyPattern("dd.MM.yyyy");
-        }
-        else {
-            format.applyPattern("MM.yyyy");
-            flag = false;
-        }
+    public String bestCurseWeek(List<String> param) {
+        Map <TypeBank.typeBank,List<Exchange>> mapBank = new HashMap<>();
         try {
-            docDate= format.parse(date);
-            if (docDate.after(new Date())){
-                System.out.println(docDate);
-                return "Дата не может быть будущим по отношению к  " + LocalDate.now().format(DateTimeFormatter.ofPattern("dd MMMM yyyy "));
-            }
-        } catch (ParseException e) {
+            mapBank = searcExcange(param);
+        } catch (JSONException e) {
             e.printStackTrace();
-            return "EROR1";
+        } catch (IOException e) {
+            e.printStackTrace();
         }
-        //?????????????????
-      //  String url = creatURL(TypeBank.typeBank.PB,date);
-      //  actionDayMonth(date,flag, TypeBank.typeBank.PB);
-       // actionDayMonth(date,flag, TypeBank.typeBank.NBU);
+        return "Лучший курс на прошедшей недели по банкам: " + bestCurs(mapBank);
+    }
+
+    @Override
+    public String bestCurseDay(List<String> param) {
+            Map <TypeBank.typeBank,List<Exchange>> mapBank = new HashMap<>();
+        try {
+            mapBank = searcExcange(param);
+        } catch (JSONException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        return "Лучший курс на день по банкам:" +  bestCurs(mapBank);
+    }
+
+    @Override
+    public Map<TypeBank.typeBank, List<Exchange>> searcExcange(List<String> param) throws JSONException, IOException {
+        listExchangeNBU = null;
+        listExchangePB = null;
+        String curr ;
+        String date = param.get(0);
         CompletableFuture futurePb;
         CompletableFuture futureNbu;
-        Boolean flagB = flag;
-        futureNbu = CompletableFuture.supplyAsync(()-> actionDayMonth(date,flagB,TypeBank.typeBank.NBU));
-        futurePb = CompletableFuture.supplyAsync(() -> actionDayMonth(date,flagB, TypeBank.typeBank.PB));
+        futureNbu = CompletableFuture.supplyAsync(()-> actionDayMonth(date,TypeBank.typeBank.NBU));
+        futurePb = CompletableFuture.supplyAsync(() -> actionDayMonth(date,TypeBank.typeBank.PB));
         try{
         listExchangePB = (List<Exchange>) futurePb.get();
         listExchangeNBU = (List<Exchange>) futureNbu.get();
@@ -92,17 +92,14 @@ public class ExchangeRatesSearch implements ExchangeRatesSearchIn  {
         catch (InterruptedException | ExecutionException e){
             LOGGER.error("Ошибка при получении результатов асинхронного запроса", e);
         }
-
         /*
         Проверка в запросе наличия условия по валюте
         и вывод соответствующего результата.
          */
-
-        if (param.size()>1)  {
+        if (param.size()>1){
             curr = param.get(1);
-            List<Exchange>resultPB  = actionDayCurr(listExchangePB,curr);
-            List<Exchange>resultNBU = actionDayCurr(listExchangeNBU,curr);
-        //    String paramPB = date + "_" + TypeBank.typeBank.PB;
+            List<Exchange>resultPB  = actionCurr(listExchangePB,curr);
+            List<Exchange>resultNBU = actionCurr(listExchangeNBU,curr);
             new WordDoc(resultPB,date+"PB");
             new WordDoc(resultNBU,date+"NBU");
             listExchangePB = resultPB;
@@ -112,55 +109,96 @@ public class ExchangeRatesSearch implements ExchangeRatesSearchIn  {
             new WordDoc(listExchangePB,date + "PB");
             new WordDoc(listExchangeNBU,date + "NBU");
         }
-        return listExchangeNBU.toString();
+        Map<TypeBank.typeBank, List<Exchange>> bankListMap = new HashMap<>();
+        bankListMap.put(TypeBank.typeBank.PB,listExchangePB);
+        bankListMap.put(TypeBank.typeBank.NBU,listExchangeNBU);
+        return bankListMap;
+    }
+    /**
+     *Валидация даты
+     */
+    @Override
+    public String validDate(List<String> param){
+        String date = param.get(0);
+        SimpleDateFormat format = new SimpleDateFormat();
+        Date docDate = null;
+        if(date.length() > 7){
+            format.applyPattern("dd.MM.yyyy");
+        }
+        else {
+            format.applyPattern("MM.yyyy");
+        }
+        try {
+            docDate= format.parse(date);
+        } catch (ParseException e) {
+            e.printStackTrace();
+            return "Неправильный формат даты. Допустимый формат dd.MM.yyyy или MM.yyyy";
+        }
+        if (docDate.after(new Date())) {
+            System.out.println(docDate);
+            return "Дата не может быть будущим по отношению к  " + LocalDate.now().format(DateTimeFormatter.ofPattern("dd MMMM yyyy "));
+        }
+        return date;
     }
 
     /**
      * Метод выбирает курсы всех валют с ресурса URL за определенный период date
-     * @param date Временной параметр выборки формат "MM.yyyy" или "dd.MM.yyyy"
+     * @param date Временной параметр выборки формат "MM.yyyy" или "dd.MM.yyyy",если date is null выбирает за неделю
      * @return результат выборки в виде коллекции объектов Exchange
      * @throws JSONException
      */
-    public List<Exchange> actionDayMonth(String date, Boolean flag, TypeBank.typeBank bank){
+    public List<Exchange> actionDayMonth(String date, TypeBank.typeBank bank){
         List<Exchange> exchangeList = new ArrayList<>();
-        String dateCh = null;
         Exchange result;
-        if(flag){
+        if(date!=null){
+            //вборка за один день
+            if(date.length() > 7){
             System.out.println("Name " + Thread.currentThread().getName());
             String url = creatURL(bank,date);
             result = exchange(url, bank);
             exchangeList.add(result);
+            }
+            //выборка за месяц в нескольких потоках
+            else {
+                ExecutorService executor = Executors.newFixedThreadPool(5);
+                CompletionService<Exchange> completionService = new ExecutorCompletionService<>(executor);
+                List<Future<Exchange>> listFuture = new ArrayList<>();
+                Future<Exchange> future;
+                String dateParse = "01." + date;
+                DateTimeFormatter format = DateTimeFormatter.ofPattern("dd.MM.yyyy");
+                LocalDate localDate = LocalDate.parse(dateParse,format);
+                for (LocalDate i = localDate; i.isBefore(localDate.plusMonths(1)); i=i.plusDays(1)) {
+                    date = i.format(format);
+                    String url = creatURL(bank,date);
+                    try {
+                        future = completionService.submit(() -> exchange(url,bank));
+                        listFuture.add(future);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
+                for (int i = 0; i < listFuture.size();i++ ){
+                    try {
+                        exchangeList.add(completionService.take().get());
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    } catch (ExecutionException e) {
+                        e.printStackTrace();
+                    }
+                }
+                executor.shutdown();
+            }
         }
-        //выборка за месяц в нескольких потоках
-        else {
-            ExecutorService executor = Executors.newFixedThreadPool(5);
-            CompletionService<Exchange> completionService = new ExecutorCompletionService<>(executor);
-            List<Future<Exchange>> listFuture = new ArrayList<>();
-            Future<Exchange> future;
-            String dateParse = "01." + date;
-            DateTimeFormatter format = DateTimeFormatter.ofPattern("dd.MM.yyyy");
-            LocalDate localDate = LocalDate.parse(dateParse,format);
-            for (LocalDate i = localDate; i.isBefore(localDate.plusMonths(1)); i=i.plusDays(1)) {
-                dateCh = i.format(format);
-                System.out.println(bank +" "+ dateCh);
-                String url = creatURL(bank,dateCh);
-                try {
-                    future = completionService.submit(() -> exchange(url,bank));
-                    listFuture.add(future);
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
+        //выборка курсов за прошедшую неделю
+        else{
+            LocalDate dateNow = LocalDate.now();
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd.MM.yyyy");
+            String url = null;
+            for (LocalDate i = dateNow.minusWeeks(1);i.isBefore(dateNow);i=i.plusDays(1)){
+                date = i.format(formatter);
+                url = creatURL(bank,date);
+                exchangeList.add(exchange(url,bank));
             }
-            for (int i = 0; i < listFuture.size();i++ ){
-                try {
-                    exchangeList.add(completionService.take().get());
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                } catch (ExecutionException e) {
-                    e.printStackTrace();
-                }
-            }
-            executor.shutdown();
         }
         return exchangeList;
     }
@@ -199,7 +237,7 @@ public class ExchangeRatesSearch implements ExchangeRatesSearchIn  {
      * @throws JSONException
      * @throws IOException
      */
-    public static List<Exchange> actionDayCurr(List<Exchange> arrayExchange, String curr) throws JSONException, IOException {
+    public static List<Exchange> actionCurr(List<Exchange> arrayExchange, String curr) throws JSONException, IOException {
         List<Exchange> arrayExchangeCurr = new ArrayList<>();
         for (Exchange result:arrayExchange) {
             for (Exchange.ExchangeRate exchange : result.getExchangeRate()) {
@@ -217,6 +255,36 @@ public class ExchangeRatesSearch implements ExchangeRatesSearchIn  {
             }
         }
         return arrayExchangeCurr;
+    }
+    public String bestCurs(Map <TypeBank.typeBank,List<Exchange>> mapBank){
+        String bankSale = "PB";
+        String bankBuy = "NBU";
+        String dateSale = null;
+        String dateBay = null;
+        Float sale = Float.parseFloat(mapBank.get(TypeBank.typeBank.PB).get(0).getExchangeRate().get(0).getSaleRate());
+        Float bay = Float.parseFloat(mapBank.get(TypeBank.typeBank.PB).get(0).getExchangeRate().get(0).getPurchaseRate());
+        for (Map.Entry<TypeBank.typeBank,List<Exchange>> node:mapBank.entrySet()) {
+            for (Exchange exchange: node.getValue()){
+                System.out.println(exchange.toString());
+             //   if (exchange.getExchangeRate().get(0).getCurrency().equals(param.get(1))){
+                    for (int i = 0; i < exchange.getExchangeRate().size();i++){
+                        if(sale > Float.parseFloat(exchange.getExchangeRate().get(i).getSaleRate())){
+                            System.out.println("Ex"+exchange);
+                            sale = Float.parseFloat(exchange.getExchangeRate().get(i).getSaleRate());
+                            bankSale = exchange.getBank();
+                            dateSale = exchange.getDate();
+                        }
+                        if(bay < Float.parseFloat(exchange.getExchangeRate().get(i).getPurchaseRate())){
+                            bay = Float.parseFloat(exchange.getExchangeRate().get(i).getPurchaseRate());
+                            bankSale = exchange.getBank();
+                            dateBay = exchange.getDate();
+                        }
+                    }
+               // }
+            }
+        }
+        return "КУПИТЬ " + dateSale + " Bank Sale - " + bankSale
+                + " sale - " + sale + " СДАТЬ:" + dateBay + " Bank Bay " + bankBuy + " bay " + bay;
     }
 
 }
