@@ -46,10 +46,16 @@ public class CourseController {
     }
     @GetMapping(value = "best/week={param}")
     public String exchangeRateWeek(@PathVariable String param){
+        System.out.println(param.length());
+        if(param.length()==3){
         List<String> paramList = new ArrayList<>();
         paramList.add(null);
         paramList.add(param);
         return service.bestCurseWeek(paramList);
+        }
+        else {
+            return "Введите валюту в формате USD";
+        }
     }
 
 

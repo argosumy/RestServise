@@ -39,21 +39,21 @@ public class ParseXmlDom {
         List<Exchange.ExchangeRate> exchangeList = new ArrayList<>();
         for (int i = 0; i < nodeList.getLength(); i++) {
             Node node = nodeList.item(i);
-            if (node.getNodeName() == "currency") {
+            if (node.getNodeName().equals("currency")){
                 NodeList cur = node.getChildNodes();
                 Exchange.ExchangeRate rate = exchanges.new ExchangeRate();
                 for (int x = 0; x < cur.getLength(); x++) {
                     Node node1 = cur.item(x);
-                    if (node1.getNodeName() != "#text") {
-                        if (node1.getNodeName() == "cc") {
+                    if (!node1.getNodeName().equals("#text")) {
+                        if (node1.getNodeName().equals("cc")) {
                             rate.setCurrency(node1.getTextContent());
                             rate.setBaseCurrency("UAN");
                         }
-                        if (node1.getNodeName() == "rate") {
+                        if (node1.getNodeName().equals("rate")) {
                             rate.setSaleRate(node1.getTextContent());
                             rate.setPurchaseRate(node1.getTextContent());
                         }
-                        if (node1.getNodeName() == "txt") {
+                        if (node1.getNodeName().equals("txt")) {
                         }
                         if (x > 8) {
                             exchangeList.add(rate);
