@@ -54,22 +54,23 @@ public class ExchangeRatesSearch implements ExchangeRatesSearchIn  {
         try {
             mapBank = searcExcange(param);
         } catch (JSONException e) {
-            e.printStackTrace();
+            LOGGER.error(e);
         } catch (IOException e) {
-            e.printStackTrace();
+            LOGGER.error(e);
         }
         return "Лучший курс на прошедшей недели по банкам: " + bestCurs(mapBank);
     }
 
     @Override
     public String bestCurseDay(List<String> param) {
+        LOGGER.error("START");
             Map <TypeBank.typeBank,List<Exchange>> mapBank = new HashMap<>();
         try {
             mapBank = searcExcange(param);
         } catch (JSONException e) {
-            e.printStackTrace();
+            LOGGER.error(e);
         } catch (IOException e) {
-            e.printStackTrace();
+            LOGGER.error(e);
         }
 
         return "Лучший курс на день по банкам:" +  bestCurs(mapBank);
@@ -131,7 +132,7 @@ public class ExchangeRatesSearch implements ExchangeRatesSearchIn  {
         try {
             docDate= format.parse(date);
         } catch (ParseException e) {
-            e.printStackTrace();
+            LOGGER.error(e);
             return "Неправильный формат даты. Допустимый формат dd.MM.yyyy или MM.yyyy";
         }
         if (docDate.after(new Date())) {
@@ -174,16 +175,16 @@ public class ExchangeRatesSearch implements ExchangeRatesSearchIn  {
                         future = completionService.submit(() -> exchange(url,bank));
                         listFuture.add(future);
                     } catch (Exception e) {
-                        e.printStackTrace();
+                        LOGGER.error(e);
                     }
                 }
                 for (int i = 0; i < listFuture.size();i++ ){
                     try {
                         exchangeList.add(completionService.take().get());
                     } catch (InterruptedException e) {
-                        e.printStackTrace();
+                        LOGGER.error(e);
                     } catch (ExecutionException e) {
-                        e.printStackTrace();
+                        LOGGER.error(e);
                     }
                 }
                 executor.shutdown();
@@ -213,6 +214,7 @@ public class ExchangeRatesSearch implements ExchangeRatesSearchIn  {
                 result = parsJson.parsJson();
             }
             catch (JSONException ex){
+                LOGGER.error(ex);
                 }
         }
         else {
@@ -220,11 +222,11 @@ public class ExchangeRatesSearch implements ExchangeRatesSearchIn  {
             try {
                 result = parseXmlDom.parserXmlDom();
             } catch (IOException e) {
-                e.printStackTrace();
+                LOGGER.error(e);
             } catch (SAXException e) {
-                e.printStackTrace();
+                LOGGER.error(e);
             } catch (ParserConfigurationException e) {
-                e.printStackTrace();
+                LOGGER.error(e);
             }
         }
         return result;
