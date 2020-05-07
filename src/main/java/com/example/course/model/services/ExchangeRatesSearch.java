@@ -49,10 +49,10 @@ public class ExchangeRatesSearch implements ExchangeRatesSearchIn  {
     }
 
     @Override
-    public String bestCurseWeek(List<String> param) {
+    public String bestCurseWeek(String date,String cur) {
         Map <TypeBank.typeBank,List<Exchange>> mapBank = new HashMap<>();
         try {
-            mapBank = searcExcange(param);
+            mapBank = searcExcange(date,cur);
         } catch (JSONException e) {
             LOGGER.error(e);
         } catch (IOException e) {
@@ -62,11 +62,10 @@ public class ExchangeRatesSearch implements ExchangeRatesSearchIn  {
     }
 
     @Override
-    public String bestCurseDay(List<String> param) {
-        LOGGER.error("START");
+    public String bestCurseDay(String date, String cur) {
             Map <TypeBank.typeBank,List<Exchange>> mapBank = new HashMap<>();
         try {
-            mapBank = searcExcange(param);
+            mapBank = searcExcange(date,cur);
         } catch (JSONException e) {
             LOGGER.error(e);
         } catch (IOException e) {
@@ -77,11 +76,11 @@ public class ExchangeRatesSearch implements ExchangeRatesSearchIn  {
     }
 
     @Override
-    public Map<TypeBank.typeBank, List<Exchange>> searcExcange(List<String> param) throws JSONException, IOException {
+    public Map<TypeBank.typeBank, List<Exchange>> searcExcange(String paramDate, String paramCur) throws JSONException, IOException {
         listExchangeNBU = null;
         listExchangePB = null;
         String curr ;
-        String date = param.get(0);
+        String date = paramDate;
         CompletableFuture futurePb;
         CompletableFuture futureNbu;
         futureNbu = CompletableFuture.supplyAsync(()-> actionDayMonth(date,TypeBank.typeBank.NBU));
@@ -97,8 +96,9 @@ public class ExchangeRatesSearch implements ExchangeRatesSearchIn  {
         Проверка в запросе наличия условия по валюте
         и вывод соответствующего результата.
          */
-        if (param.size()>1){
-            curr = param.get(1);
+        paramCur = paramCur.trim();
+        if (paramCur.length()==3){
+            curr = paramCur;
             List<Exchange>resultPB  = actionCurr(listExchangePB,curr);
             List<Exchange>resultNBU = actionCurr(listExchangeNBU,curr);
             new WordDoc(resultPB,date+"PB");
@@ -119,8 +119,8 @@ public class ExchangeRatesSearch implements ExchangeRatesSearchIn  {
      *Валидация даты
      */
     @Override
-    public String validDate(List<String> param){
-        String date = param.get(0);
+    public String validDate(String paramDate){
+        String date = paramDate;
         SimpleDateFormat format = new SimpleDateFormat();
         Date docDate = null;
         if(date.length() > 7){

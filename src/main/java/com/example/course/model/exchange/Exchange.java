@@ -1,11 +1,14 @@
 package com.example.course.model.exchange;
 
+import javax.xml.bind.annotation.XmlElement;
+import javax.xml.bind.annotation.XmlRootElement;
 import java.util.List;
-
+@XmlRootElement
 public class Exchange implements Comparable<Exchange>{
     private String date;
     private String bank;
     private String baseCurrencyLit;
+    @XmlElement
     private List<ExchangeRate> exchangeRate;
 
     public Exchange() {

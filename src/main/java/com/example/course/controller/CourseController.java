@@ -3,9 +3,9 @@ package com.example.course.controller;
 import com.example.course.model.services.ExchangeRatesSearch;
 import com.example.course.model.services.ExchangeRatesSearchIn;
 import org.json.JSONException;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.ModelAndView;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -22,29 +22,24 @@ public class CourseController {
 /*Вид запроса
 *http://localhost:8888//date=22.03.2020,USD
 * */
-    @GetMapping(value = "/date={param}")
-    public String exchangeRateDay(@PathVariable List<String> param) throws JSONException, IOException {
-        String answer = service.validDate(param);
+    @GetMapping(value = "/date={date}/cur={cur}")
+    public ResponseEntity<Object> exchangeRateDay(@PathVariable("date") String date,@PathVariable(value = "cur") String cur) throws JSONException, IOException {
+        String answer = service.validDate(date);
         if(answer.length() > 10){
-            return answer;
+            return ResponseEntity.ok(answer);
         }
-        return service.searcExcange(param).toString();
+        return ResponseEntity.ok(service.searcExcange(date,cur));
     }
     //Лучший курс по банкам на указаную дату
-    @GetMapping(value = "best/date={param}")
-    public String exchangeRateDayBest(@PathVariable List<String> param) {
-        String answer = service.validDate(param);
+    @GetMapping(value = "best/date={date}/cur={cur}")
+    public String exchangeRateDayBest(@PathVariable String date, @PathVariable String cur) {
+        String answer = service.validDate(date);
         if(answer.length() > 10){
             return answer;
         }
-        else {
-            if((answer.length() < 10)||(param.size() < 2 )){
-                return "Не верный формат запроса. Допустимый формат dd.MM.yyyy,USD";
-            }
-        }
-        return service.bestCurseDay(param);
+        return service.bestCurseDay(date,cur);
     }
-    @GetMapping(value = "best/week={param}")
+  /*  @GetMapping(value = "best/week={param}")
     public String exchangeRateWeek(@PathVariable String param){
         System.out.println(param.length());
         if(param.length()==3){
@@ -55,8 +50,8 @@ public class CourseController {
         }
         else {
             return "Введите валюту в формате USD";
-        }
-    }
+
+    }*/
 
 
 
