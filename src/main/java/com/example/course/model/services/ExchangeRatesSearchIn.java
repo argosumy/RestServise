@@ -10,8 +10,8 @@ import java.util.List;
 import java.util.Map;
 
 public interface ExchangeRatesSearchIn {
-   Map<TypeBank.typeBank, List<Exchange>> searcExcange(String date, String cur) throws JSONException, IOException;
+   /*Map<TypeBank.typeBank, List<Exchange>> searcExcange(String date, String cur) throws JSONException, IOException;
    String bestCurseDay(String date, String cur);
    String bestCurseWeek(String date, String cur);
-   String validDate(String param);
+   String validDate(String param);*/
 }

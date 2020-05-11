@@ -1,6 +1,11 @@
-package com.example.course.model.converters;
+package com.example.course.model.converters.nbu;
 
+import com.example.course.model.converters.BankParseIn;
+import com.example.course.model.converters.TypeBank;
 import com.example.course.model.exchange.Exchange;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
@@ -16,14 +21,26 @@ import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.List;
 
-public class ParseXmlDom {
-    String xmlDom;
+public class BankNBU implements BankParseIn {
+    private TypeBank.typeBank typeBank = TypeBank.typeBank.NBU;
 
-    public ParseXmlDom(String xmlDom) {
-        this.xmlDom = xmlDom;
+    public BankNBU() {
     }
 
-    public Exchange parserXmlDom() throws IOException, SAXException, ParserConfigurationException {
+    @Override
+    public TypeBank.typeBank getTipeBank() {
+        return typeBank;
+    }
+
+    @Override
+    public String creatURL(String date, String format) {
+        String [] words = date.split("\\.");
+        date = words[2]+words[1]+words[0];
+        String url = "https://bank.gov.ua/NBUStatService/v1/statdirectory/exchange?date=" + date + "&" + format;//20191021&xml
+        return url;
+    }
+    @Override
+    public Exchange parserXmlDom(String xmlDom) throws IOException, SAXException, ParserConfigurationException {
         DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
         DocumentBuilder documentBuilder = factory.newDocumentBuilder();
         Document document = documentBuilder.parse(new InputSource(new StringReader(xmlDom)));
@@ -65,4 +82,29 @@ public class ParseXmlDom {
         exchanges.setExchangeRate(exchangeList);
         return exchanges;
     }
+
+    @Override
+    public Exchange parseJson(String json) throws JSONException {
+        JSONArray jsonArray = new JSONArray(json);
+        Exchange exchange = new Exchange();
+        exchange.setBank("NBU");
+        exchange.setBaseCurrencyLit("UAN");
+        List<Exchange.ExchangeRate> listExchange = new ArrayList<>();
+        for(int i = 0; i < jsonArray.length();i++ ){
+            Exchange.ExchangeRate exchangeRate = exchange.new ExchangeRate();
+            JSONObject element = jsonArray.getJSONObject(i);
+            if( i == 0){
+                exchange.setDate(element.getString("exchangedate"));
+            }
+            exchangeRate.setCurrency(element.getString("cc"));
+            exchangeRate.setSaleRate(element.getString("rate"));
+            exchangeRate.setPurchaseRate(element.getString("rate"));
+            exchangeRate.setBaseCurrency("UAN");
+            listExchange.add(exchangeRate);
+        }
+        exchange.setExchangeRate(listExchange);
+       return exchange;
+    }
+
+
 }

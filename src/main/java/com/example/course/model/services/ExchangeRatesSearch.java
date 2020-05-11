@@ -1,14 +1,14 @@
 package com.example.course.model.services;
 
 
-import com.example.course.model.converters.ParsJson;
-import com.example.course.model.converters.ParseXmlDom;
+import com.example.course.model.converters.BankParseIn;
 import com.example.course.model.converters.TypeBank;
 import com.example.course.model.converters.WordDoc;
+import com.example.course.model.converters.nbu.BankNBU;
+import com.example.course.model.converters.privat.BankPrivat;
 import com.example.course.model.exchange.Exchange;
 import org.apache.log4j.Logger;
 import org.json.JSONException;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 import org.xml.sax.SAXException;
@@ -24,74 +24,42 @@ import java.util.concurrent.*;
 
 
 @Service
-public class ExchangeRatesSearch implements ExchangeRatesSearchIn  {
+public class ExchangeRatesSearch  {
     private static final Logger LOGGER = Logger.getLogger(ExchangeRatesSearch.class);
-    private List<Exchange> listExchangePB = new ArrayList<>();
-    private List<Exchange> listExchangeNBU = new ArrayList<>();
+    private List<BankParseIn> banks;
     private RestTemplate restTemplate = new RestTemplate();
 
     public ExchangeRatesSearch() {
-    }
-    public String creatURL(TypeBank.typeBank bank, String date){
-        //date 21.10.2019
-        String url;
-        if(bank == TypeBank.typeBank.PB){
-            url = "https://api.privatbank.ua/p24api/exchange_rates?json&date=" + date;
-            return url;
-        }
-        if(bank == TypeBank.typeBank.NBU){
-            String [] words = date.split("\\.");
-            date = words[2]+words[1]+words[0];
-            url = "https://bank.gov.ua/NBUStatService/v1/statdirectory/exchange?date=" + date;//20191021&xml
-            return url;
-        }
-        return null;
+        banks = new ArrayList<>();
+        banks.add(new BankNBU());
+        banks.add(new BankPrivat());
+       // banks.add(BankFactory.createBankParse(TypeBank.typeBank.MONOBANK));
     }
 
-    @Override
-    public String bestCurseWeek(String date,String cur) {
-        Map <TypeBank.typeBank,List<Exchange>> mapBank = new HashMap<>();
-        try {
-            mapBank = searcExcange(date,cur);
-        } catch (JSONException e) {
-            LOGGER.error(e);
-        } catch (IOException e) {
-            LOGGER.error(e);
-        }
-        return "Лучший курс на прошедшей недели по банкам: " + bestCurs(mapBank);
+    public Map<TypeBank.typeBank,List<Exchange>> searcExcangeBanks(String date, String xml_json, String paramCur){
+        Map<TypeBank.typeBank,List<Exchange>> mapBanks = new HashMap<>();
+        List<Exchange> exchangeList = new ArrayList<>();
+            for (BankParseIn bank: banks){
+                try {
+                    exchangeList = searcExcange(date, xml_json, paramCur, bank);
+                    mapBanks.put(bank.getTipeBank(),exchangeList);
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                } catch (ParserConfigurationException e) {
+                    e.printStackTrace();
+                } catch (SAXException e) {
+                    e.printStackTrace();
+                }
+            }
+        return mapBanks;
     }
 
-    @Override
-    public String bestCurseDay(String date, String cur) {
-            Map <TypeBank.typeBank,List<Exchange>> mapBank = new HashMap<>();
-        try {
-            mapBank = searcExcange(date,cur);
-        } catch (JSONException e) {
-            LOGGER.error(e);
-        } catch (IOException e) {
-            LOGGER.error(e);
-        }
-
-        return "Лучший курс на день по банкам:" +  bestCurs(mapBank);
-    }
-
-    @Override
-    public Map<TypeBank.typeBank, List<Exchange>> searcExcange(String paramDate, String paramCur) throws JSONException, IOException {
-        listExchangeNBU = null;
-        listExchangePB = null;
+    public List<Exchange> searcExcange(String date, String xml_json, String paramCur, BankParseIn bank) throws JSONException, IOException, ParserConfigurationException, SAXException {
+        List<Exchange> listExchange = null;
         String curr ;
-        String date = paramDate;
-        CompletableFuture futurePb;
-        CompletableFuture futureNbu;
-        futureNbu = CompletableFuture.supplyAsync(()-> actionDayMonth(date,TypeBank.typeBank.NBU));
-        futurePb = CompletableFuture.supplyAsync(() -> actionDayMonth(date,TypeBank.typeBank.PB));
-        try{
-        listExchangePB = (List<Exchange>) futurePb.get();
-        listExchangeNBU = (List<Exchange>) futureNbu.get();
-        }
-        catch (InterruptedException | ExecutionException e){
-            LOGGER.error("Ошибка при получении результатов асинхронного запроса", e);
-        }
+        listExchange = actionDayMonth(date,xml_json,bank);
         /*
         Проверка в запросе наличия условия по валюте
         и вывод соответствующего результата.
@@ -99,26 +67,18 @@ public class ExchangeRatesSearch implements ExchangeRatesSearchIn  {
         paramCur = paramCur.trim();
         if (paramCur.length()==3){
             curr = paramCur;
-            List<Exchange>resultPB  = actionCurr(listExchangePB,curr);
-            List<Exchange>resultNBU = actionCurr(listExchangeNBU,curr);
-            new WordDoc(resultPB,date+"PB");
-            new WordDoc(resultNBU,date+"NBU");
-            listExchangePB = resultPB;
-            listExchangeNBU = resultNBU;
+            List<Exchange>result  = actionCurr(listExchange,curr);
+            new WordDoc(result,date+"PB");
+            listExchange = result;
         }
         else {
-            new WordDoc(listExchangePB,date + "PB");
-            new WordDoc(listExchangeNBU,date + "NBU");
+            new WordDoc(listExchange,date + "PB");
         }
-        Map<TypeBank.typeBank, List<Exchange>> bankListMap = new HashMap<>();
-        bankListMap.put(TypeBank.typeBank.PB,listExchangePB);
-        bankListMap.put(TypeBank.typeBank.NBU,listExchangeNBU);
-        return bankListMap;
+        return listExchange;
     }
     /**
      *Валидация даты
      */
-    @Override
     public String validDate(String paramDate){
         String date = paramDate;
         SimpleDateFormat format = new SimpleDateFormat();
@@ -148,15 +108,15 @@ public class ExchangeRatesSearch implements ExchangeRatesSearchIn  {
      * @return результат выборки в виде коллекции объектов Exchange
      * @throws JSONException
      */
-    public List<Exchange> actionDayMonth(String date, TypeBank.typeBank bank){
+    public List<Exchange> actionDayMonth(String date,String xml_Json, BankParseIn bank) throws ParserConfigurationException, SAXException, JSONException, IOException {
         List<Exchange> exchangeList = new ArrayList<>();
         Exchange result;
         if(date!=null){
             //вборка за один день
             if(date.length() > 7){
             System.out.println("Name " + Thread.currentThread().getName());
-            String url = creatURL(bank,date);
-            result = exchange(url, bank);
+            String url = bank.creatURL(date,xml_Json);
+            result = exchange(date,xml_Json, bank);
             exchangeList.add(result);
             }
             //выборка за месяц в нескольких потоках
@@ -170,9 +130,9 @@ public class ExchangeRatesSearch implements ExchangeRatesSearchIn  {
                 LocalDate localDate = LocalDate.parse(dateParse,format);
                 for (LocalDate i = localDate; i.isBefore(localDate.plusMonths(1)); i=i.plusDays(1)) {
                     date = i.format(format);
-                    String url = creatURL(bank,date);
+                    String dateF = date;
                     try {
-                        future = completionService.submit(() -> exchange(url,bank));
+                        future = completionService.submit(() -> exchange(dateF,xml_Json,bank));
                         listFuture.add(future);
                     } catch (Exception e) {
                         LOGGER.error(e);
@@ -192,42 +152,45 @@ public class ExchangeRatesSearch implements ExchangeRatesSearchIn  {
         }
         //выборка курсов за прошедшую неделю
         else{
+            ExecutorService executor = Executors.newFixedThreadPool(5);
+            CompletionService<Exchange> completionService = new ExecutorCompletionService<>(executor);
+            List<Future<Exchange>> listFuture = new ArrayList<>();
+            Future<Exchange> future;
+            DateTimeFormatter format = DateTimeFormatter.ofPattern("dd.MM.yyyy");
             LocalDate dateNow = LocalDate.now();
-            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd.MM.yyyy");
-            String url = null;
-            for (LocalDate i = dateNow.minusWeeks(1);i.isBefore(dateNow);i=i.plusDays(1)){
-                date = i.format(formatter);
-                url = creatURL(bank,date);
-                exchangeList.add(exchange(url,bank));
+            for (LocalDate i = dateNow.minusWeeks(1);i.isBefore(dateNow);i=i.plusDays(1)) {
+                date = i.format(format);
+                String dateF = date;
+                try {
+                    future = completionService.submit(() -> exchange(dateF,xml_Json,bank));
+                    listFuture.add(future);
+                } catch (Exception e) {
+                    LOGGER.error(e);
+                }
             }
+            for (int i = 0; i < listFuture.size();i++ ){
+                try {
+                    exchangeList.add(completionService.take().get());
+                } catch (InterruptedException e) {
+                    LOGGER.error(e);
+                } catch (ExecutionException e) {
+                    LOGGER.error(e);
+                }
+            }
+            executor.shutdown();
         }
         return exchangeList;
     }
 
-    public Exchange exchange(String url, TypeBank.typeBank bank)  {
-        System.out.println("Exchange - " + Thread.currentThread().getName());
-        String resultJson = restTemplate.getForObject(url, String.class);
+    public Exchange exchange(String date, String format, BankParseIn bank) throws ParserConfigurationException, SAXException, IOException, JSONException {
+        String url = bank.creatURL(date,format);
+        String resultTemplate = restTemplate.getForObject(url, String.class);
         Exchange result = null;
-        if(bank.equals(TypeBank.typeBank.PB)){
-            try {
-                ParsJson parsJson = new ParsJson(resultJson);
-                result = parsJson.parsJson();
-            }
-            catch (JSONException ex){
-                LOGGER.error(ex);
-                }
+        if(format.equals("xml")){
+            result = bank.parserXmlDom(resultTemplate);
         }
-        else {
-            ParseXmlDom parseXmlDom = new ParseXmlDom(resultJson);
-            try {
-                result = parseXmlDom.parserXmlDom();
-            } catch (IOException e) {
-                LOGGER.error(e);
-            } catch (SAXException e) {
-                LOGGER.error(e);
-            } catch (ParserConfigurationException e) {
-                LOGGER.error(e);
-            }
+        if(format.equals("json")){
+            result = bank.parseJson(resultTemplate);
         }
         return result;
     }
@@ -258,17 +221,32 @@ public class ExchangeRatesSearch implements ExchangeRatesSearchIn  {
         }
         return arrayExchangeCurr;
     }
+    /**
+     * Выбирает лучший курс на прошедшей недели
+     * */
+    public String bestCurseWeek(String cur) {
+        Map <TypeBank.typeBank,List<Exchange>> mapBank = new HashMap<>();
+        mapBank = searcExcangeBanks(null,"json",cur);
+        return "Лучший курс на прошедшей недели по банкам: " + bestCurs(mapBank);
+    }
+
+    public String bestCurseDay(String date,String xml_json , String cur) throws ParserConfigurationException, SAXException {
+        Map <TypeBank.typeBank,List<Exchange>> mapBank = new HashMap<>();
+        mapBank = searcExcangeBanks(date,xml_json,cur);
+        return "Лучший курс на день по банкам:" +  bestCurs(mapBank);
+    }
+
     public String bestCurs(Map <TypeBank.typeBank,List<Exchange>> mapBank){
-        String bankSale = "PB";
-        String bankBuy = "NBU";
         String dateSale = null;
         String dateBay = null;
+
+        String bankSale = "PB";
+        String bankBuy = "PB";
         Float sale = Float.parseFloat(mapBank.get(TypeBank.typeBank.PB).get(0).getExchangeRate().get(0).getSaleRate());
         Float bay = Float.parseFloat(mapBank.get(TypeBank.typeBank.PB).get(0).getExchangeRate().get(0).getPurchaseRate());
         for (Map.Entry<TypeBank.typeBank,List<Exchange>> node:mapBank.entrySet()) {
             for (Exchange exchange: node.getValue()){
                 System.out.println(exchange.toString());
-             //   if (exchange.getExchangeRate().get(0).getCurrency().equals(param.get(1))){
                     for (int i = 0; i < exchange.getExchangeRate().size();i++){
                         if(sale > Float.parseFloat(exchange.getExchangeRate().get(i).getSaleRate())){
                             System.out.println("Ex"+exchange);
@@ -278,15 +256,14 @@ public class ExchangeRatesSearch implements ExchangeRatesSearchIn  {
                         }
                         if(bay < Float.parseFloat(exchange.getExchangeRate().get(i).getPurchaseRate())){
                             bay = Float.parseFloat(exchange.getExchangeRate().get(i).getPurchaseRate());
-                            bankSale = exchange.getBank();
+                            bankBuy = exchange.getBank();
                             dateBay = exchange.getDate();
                         }
                     }
-               // }
             }
         }
-        return "КУПИТЬ " + dateSale + " Bank Sale - " + bankSale
-                + " sale - " + sale + " СДАТЬ:" + dateBay + " Bank Bay " + bankBuy + " bay " + bay;
+        return "КУПИТЬ " + dateSale + " в банке  - " + bankSale
+                + " по курсу - " + sale + " СДАТЬ:" + dateBay + " в банк " + bankBuy + " по курсу " + bay;
     }
 
 }

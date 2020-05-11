@@ -1,22 +1,42 @@
-package com.example.course.model.converters;
+package com.example.course.model.converters.privat;
 
+import com.example.course.model.converters.BankParseIn;
+import com.example.course.model.converters.TypeBank;
 import com.example.course.model.exchange.Exchange;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.xml.sax.SAXException;
 
+import javax.xml.parsers.ParserConfigurationException;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-public class ParsJson {
-    String json;
+public class BankPrivat implements BankParseIn {
+    private TypeBank.typeBank typeBank = TypeBank.typeBank.PB;
 
+    public BankPrivat() {
+            }
 
-    public ParsJson(String json) throws JSONException {
-        this.json = json;
+    @Override
+    public TypeBank.typeBank getTipeBank() {
+        return typeBank;
     }
-    public Exchange parsJson()throws JSONException {
 
+    @Override
+    public String creatURL(String date,String format) {
+        String url = "https://api.privatbank.ua/p24api/exchange_rates?" + format + "&date=" + date;
+        return url;
+    }
+
+    @Override
+    public Exchange parserXmlDom(String xmlDom) throws IOException, SAXException, ParserConfigurationException {
+        return null;
+    }
+
+    @Override
+    public Exchange parseJson(String json) throws JSONException {
         JSONObject obj = new JSONObject(json);
         Exchange exchange = new Exchange();
         exchange.setDate(obj.getString("date"));
@@ -41,4 +61,6 @@ public class ParsJson {
         exchange.setExchangeRate(listExchange);
         return exchange;
     }
+
+
 }
