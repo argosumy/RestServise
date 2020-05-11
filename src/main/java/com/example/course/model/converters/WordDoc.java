@@ -5,47 +5,49 @@ import org.apache.poi.xwpf.usermodel.XWPFDocument;
 import org.apache.poi.xwpf.usermodel.XWPFParagraph;
 import org.apache.poi.xwpf.usermodel.XWPFRun;
 
-import java.io.File;
-import java.io.FileOutputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 
 public class WordDoc {
-    public WordDoc(List<Exchange> exchange, String param) throws IOException {
-        wordWrite(exchange,param);
+    public WordDoc() {
     }
 
     /**
-     * Записывает в фаил Word коллекцию из курсов валют
-     * @param arrayExchange
-     * @param param
+     * Формирует массив байтов для отправки в файле
+     *
      */
-    public void wordWrite(List<Exchange> arrayExchange, String param) {
-        String fail = "exchange_" + param;
-        try (FileOutputStream fos = new FileOutputStream(new File(fail + ".docx"))) {
+    public byte[] wordWrite(Map<TypeBank.typeBank,List<Exchange>> typeBankListMap) {
             XWPFDocument doc = new XWPFDocument();
             XWPFParagraph paragraph = doc.createParagraph();
             XWPFRun abzac = paragraph.createRun();
-            for (Exchange exchange: arrayExchange) {
-                abzac.setText("ДАТА - " + exchange.getDate()
-                        + " "
-                        + "БАНК - "
-                        + exchange.getBank()
-                        + " "
-                        + "ВАЛЮТА - "
-                        + exchange.getBaseCurrencyLit());
-                abzac.addBreak();
-                for (Exchange.ExchangeRate exchangeRate : exchange.getExchangeRate()) {
-                    abzac.setText("ВАЛЮТА - " + exchangeRate.getCurrency() + "   ");
-                    abzac.setText("ПРОДАЖА - " + exchangeRate.getSaleRate() + "   ");
-                    abzac.setText("ПОКУПКА - " + exchangeRate.getPurchaseRate());
+            for(Map.Entry entry: typeBankListMap.entrySet()) {
+                List<Exchange> exchangeList = (List<Exchange>) entry.getValue();
+                for (Exchange exchange : exchangeList) {
+                    abzac.setText("ДАТА - " + exchange.getDate()
+                            + " "
+                            + "БАНК - "
+                            + exchange.getBank()
+                            + " "
+                            + "ВАЛЮТА - "
+                            + exchange.getBaseCurrencyLit());
                     abzac.addBreak();
+                    for (Exchange.ExchangeRate exchangeRate : exchange.getExchangeRate()) {
+                        abzac.setText("ВАЛЮТА - " + exchangeRate.getCurrency() + "   ");
+                        abzac.setText("ПРОДАЖА - " + exchangeRate.getSaleRate() + "   ");
+                        abzac.setText("ПОКУПКА - " + exchangeRate.getPurchaseRate());
+                        abzac.addBreak();
+                    }
                 }
             }
-            doc.write(fos);
-        } catch (IOException ex) {
-
+        ByteArrayOutputStream byteArray = new ByteArrayOutputStream();
+        try {
+            doc.write(byteArray);
+        } catch (IOException e) {
+            e.printStackTrace();
         }
+      return byteArray.toByteArray();
     }
 
 }

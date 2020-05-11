@@ -68,11 +68,11 @@ public class ExchangeRatesSearch  {
         if (paramCur.length()==3){
             curr = paramCur;
             List<Exchange>result  = actionCurr(listExchange,curr);
-            new WordDoc(result,date+"PB");
+           // new WordDoc(result,date+"PB");
             listExchange = result;
         }
         else {
-            new WordDoc(listExchange,date + "PB");
+            //new WordDoc(listExchange,date + "PB");
         }
         return listExchange;
     }
