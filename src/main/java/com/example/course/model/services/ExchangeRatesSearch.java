@@ -9,6 +9,7 @@ import com.example.course.model.converters.privat.BankPrivat;
 import com.example.course.model.exchange.Exchange;
 import org.apache.log4j.Logger;
 import org.json.JSONException;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 import org.xml.sax.SAXException;
@@ -28,12 +29,14 @@ public class ExchangeRatesSearch  {
     private static final Logger LOGGER = Logger.getLogger(ExchangeRatesSearch.class);
     private List<BankParseIn> banks;
     private RestTemplate restTemplate = new RestTemplate();
-
+    @Value("${url.nbu}")
+    private String urlNbu;
+    @Value("${url.pb}")
+    private String urlPb;
     public ExchangeRatesSearch() {
         banks = new ArrayList<>();
         banks.add(new BankNBU());
         banks.add(new BankPrivat());
-       // banks.add(BankFactory.createBankParse(TypeBank.typeBank.MONOBANK));
     }
 
     public Map<TypeBank.typeBank,List<Exchange>> searcExcangeBanks(String date, String xml_json, String paramCur){
@@ -115,7 +118,6 @@ public class ExchangeRatesSearch  {
             //вборка за один день
             if(date.length() > 7){
             System.out.println("Name " + Thread.currentThread().getName());
-            String url = bank.creatURL(date,xml_Json);
             result = exchange(date,xml_Json, bank);
             exchangeList.add(result);
             }
@@ -183,7 +185,14 @@ public class ExchangeRatesSearch  {
     }
 
     public Exchange exchange(String date, String format, BankParseIn bank) throws ParserConfigurationException, SAXException, IOException, JSONException {
-        String url = bank.creatURL(date,format);
+        String bankUrl=null;
+        if(bank instanceof BankPrivat){
+            bankUrl = urlPb;
+        }
+        if (bank instanceof  BankNBU){
+            bankUrl = urlNbu;
+        }
+        String url = bank.creatURL(date,format,bankUrl);
         String resultTemplate = restTemplate.getForObject(url, String.class);
         Exchange result = null;
         if(format.equals("xml")){

@@ -10,6 +10,6 @@ import java.io.IOException;
 public interface BankParseIn {
     public Exchange parserXmlDom(String xmlDom) throws IOException, SAXException, ParserConfigurationException;
     public Exchange parseJson(String json) throws JSONException;
-    public String creatURL(String date, String format);
+    public String creatURL(String date, String format, String url);
     public TypeBank.typeBank getTipeBank();
 }

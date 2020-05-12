@@ -6,6 +6,13 @@ import com.example.course.model.exchange.Exchange;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.ComponentScan;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.PropertySource;
+import org.springframework.context.support.PropertySourcesPlaceholderConfigurer;
+import org.springframework.stereotype.Component;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
@@ -20,9 +27,11 @@ import java.io.IOException;
 import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.List;
-
+@Component
 public class BankNBU implements BankParseIn {
     private TypeBank.typeBank typeBank = TypeBank.typeBank.NBU;
+    @Value("${url.nbu}")
+    private String nbuUrl;
 
     public BankNBU() {
     }
@@ -33,10 +42,10 @@ public class BankNBU implements BankParseIn {
     }
 
     @Override
-    public String creatURL(String date, String format) {
+    public String creatURL(String date, String format, String nbuUrl) {
         String [] words = date.split("\\.");
         date = words[2]+words[1]+words[0];
-        String url = "https://bank.gov.ua/NBUStatService/v1/statdirectory/exchange?date=" + date + "&" + format;//20191021&xml
+        String url = nbuUrl + date + "&" + format;//20191021&xml
         return url;
     }
     @Override
@@ -105,6 +114,5 @@ public class BankNBU implements BankParseIn {
         exchange.setExchangeRate(listExchange);
        return exchange;
     }
-
 
 }

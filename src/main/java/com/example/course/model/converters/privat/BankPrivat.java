@@ -25,8 +25,8 @@ public class BankPrivat implements BankParseIn {
     }
 
     @Override
-    public String creatURL(String date,String format) {
-        String url = "https://api.privatbank.ua/p24api/exchange_rates?" + format + "&date=" + date;
+    public String creatURL(String date,String format, String pbUrl) {
+        String url = pbUrl + format + "&date=" + date;
         return url;
     }
 
