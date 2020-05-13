@@ -13,6 +13,8 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.PropertySource;
 import org.springframework.context.support.PropertySourcesPlaceholderConfigurer;
 import org.springframework.stereotype.Component;
+import org.springframework.web.util.UriComponents;
+import org.springframework.web.util.UriComponentsBuilder;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
@@ -45,8 +47,10 @@ public class BankNBU implements BankParseIn {
     public String creatURL(String date, String format, String nbuUrl) {
         String [] words = date.split("\\.");
         date = words[2]+words[1]+words[0];
-        String url = nbuUrl + date + "&" + format;//20191021&xml
-        return url;
+        UriComponents uriComponents = UriComponentsBuilder.newInstance()
+                .scheme("https").host(nbuUrl)
+                .queryParam("date",date).query(format).build();
+        return uriComponents.toUriString();
     }
     @Override
     public Exchange parserXmlDom(String xmlDom) throws IOException, SAXException, ParserConfigurationException {
@@ -78,8 +82,6 @@ public class BankNBU implements BankParseIn {
                         if (node1.getNodeName().equals("rate")) {
                             rate.setSaleRate(node1.getTextContent());
                             rate.setPurchaseRate(node1.getTextContent());
-                        }
-                        if (node1.getNodeName().equals("txt")) {
                         }
                         if (x > 8) {
                             exchangeList.add(rate);

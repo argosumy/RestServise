@@ -6,6 +6,8 @@ import com.example.course.model.exchange.Exchange;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.springframework.web.util.UriComponents;
+import org.springframework.web.util.UriComponentsBuilder;
 import org.xml.sax.SAXException;
 
 import javax.xml.parsers.ParserConfigurationException;
@@ -26,12 +28,14 @@ public class BankPrivat implements BankParseIn {
 
     @Override
     public String creatURL(String date,String format, String pbUrl) {
-        String url = pbUrl + format + "&date=" + date;
-        return url;
+        UriComponents uriComponents = UriComponentsBuilder.newInstance()
+                .scheme("https").host(pbUrl)
+                .query(format).queryParam("date",date).build();
+        return uriComponents.toUriString();
     }
 
     @Override
-    public Exchange parserXmlDom(String xmlDom) throws IOException, SAXException, ParserConfigurationException {
+    public Exchange parserXmlDom(String xmlDom) {
         return null;
     }
 
