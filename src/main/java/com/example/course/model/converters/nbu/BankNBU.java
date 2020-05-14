@@ -6,13 +6,6 @@ import com.example.course.model.exchange.Exchange;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.ComponentScan;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.PropertySource;
-import org.springframework.context.support.PropertySourcesPlaceholderConfigurer;
-import org.springframework.stereotype.Component;
 import org.springframework.web.util.UriComponents;
 import org.springframework.web.util.UriComponentsBuilder;
 import org.w3c.dom.Document;
@@ -29,11 +22,10 @@ import java.io.IOException;
 import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.List;
-@Component
+
+
 public class BankNBU implements BankParseIn {
     private TypeBank.typeBank typeBank = TypeBank.typeBank.NBU;
-    @Value("${url.nbu}")
-    private String nbuUrl;
 
     public BankNBU() {
     }

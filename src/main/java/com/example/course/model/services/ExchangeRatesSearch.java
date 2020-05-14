@@ -3,7 +3,6 @@ package com.example.course.model.services;
 
 import com.example.course.model.converters.BankParseIn;
 import com.example.course.model.converters.TypeBank;
-import com.example.course.model.converters.WordDoc;
 import com.example.course.model.converters.nbu.BankNBU;
 import com.example.course.model.converters.privat.BankPrivat;
 import com.example.course.model.exchange.Exchange;
@@ -47,13 +46,13 @@ public class ExchangeRatesSearch  {
                     exchangeList = searcExcange(date, xml_json, paramCur, bank);
                     mapBanks.put(bank.getTipeBank(),exchangeList);
                 } catch (JSONException e) {
-                    e.printStackTrace();
+                    LOGGER.error(e);
                 } catch (IOException e) {
-                    e.printStackTrace();
+                    LOGGER.error(e);
                 } catch (ParserConfigurationException e) {
-                    e.printStackTrace();
+                    LOGGER.error(e);
                 } catch (SAXException e) {
-                    e.printStackTrace();
+                    LOGGER.error(e);
                 }
             }
         return mapBanks;
@@ -71,12 +70,9 @@ public class ExchangeRatesSearch  {
         if (paramCur.length()==3){
             curr = paramCur;
             List<Exchange>result  = actionCurr(listExchange,curr);
-           // new WordDoc(result,date+"PB");
             listExchange = result;
         }
-        else {
-            //new WordDoc(listExchange,date + "PB");
-        }
+
         return listExchange;
     }
     /**
@@ -109,7 +105,6 @@ public class ExchangeRatesSearch  {
      * Метод выбирает курсы всех валют с ресурса URL за определенный период date
      * @param date Временной параметр выборки формат "MM.yyyy" или "dd.MM.yyyy",если date is null выбирает за неделю
      * @return результат выборки в виде коллекции объектов Exchange
-     * @throws JSONException
      */
     public List<Exchange> actionDayMonth(String date,String xml_Json, BankParseIn bank) throws ParserConfigurationException, SAXException, JSONException, IOException {
         List<Exchange> exchangeList = new ArrayList<>();
@@ -207,11 +202,10 @@ public class ExchangeRatesSearch  {
      * Метод выбирает из коллекции валют курс валюты curr
      * @param arrayExchange коллекция курсов всех валют
      * @param curr название валюты example: "USD"
-     * @return
      * @throws JSONException
      * @throws IOException
      */
-    public static List<Exchange> actionCurr(List<Exchange> arrayExchange, String curr) throws JSONException, IOException {
+    public static List<Exchange> actionCurr(List<Exchange> arrayExchange, String curr) {
         List<Exchange> arrayExchangeCurr = new ArrayList<>();
         for (Exchange result:arrayExchange) {
             for (Exchange.ExchangeRate exchange : result.getExchangeRate()) {
@@ -239,7 +233,7 @@ public class ExchangeRatesSearch  {
         return "Лучший курс на прошедшей недели по банкам: " + bestCurs(mapBank);
     }
 
-    public String bestCurseDay(String date,String xml_json , String cur) throws ParserConfigurationException, SAXException {
+    public String bestCurseDay(String date,String xml_json , String cur)  {
         Map <TypeBank.typeBank,List<Exchange>> mapBank = new HashMap<>();
         mapBank = searcExcangeBanks(date,xml_json,cur);
         return "Лучший курс на день по банкам:" +  bestCurs(mapBank);
